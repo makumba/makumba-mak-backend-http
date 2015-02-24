@@ -1,0 +1,5 @@
+customer= char[255]
+days= int
+line= ptr ProductionLine
+startDate= date
+endDate= date

@@ -1,0 +1,6 @@
+user=ptr q.User
+queue= ptr q.Queue
+location=char
+comment=char
+
+unique(user,queue): "a user can only join a queue once"

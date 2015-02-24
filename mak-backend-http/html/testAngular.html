@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Mak GUI for DOM</title>
+	<link rel="stylesheet" href="../css/makumba.css">
+	<script src="../javascript/jquery-1.10.2.min.js"></script>
+	<script src="../javascript/angular.js"></script>
+	<script src="../javascript/makumba-angular.js"></script>
+</head>
+<body ng-app="Makumba">
+<div>
+annotation <input id="anon" type="checkbox" onchange="makumba.annotate($(this).prop('checked'))">
+data <input id="dton" type="checkbox"/>
+<span style="color:red">{{$$error}}</span>
+</div>
+<hr/>
+<div data-from="peer.Session s" onclick="console.log(this)">
+<div>
+	<div data-from="s.question q" ng-click="">
+		
+		
+		<span data-text="q.nr"  >N</span>
+		<span data-text="s.name"></span>
+	</div>
+	<br/>
+</div>
+</div>
+
+</body>
+</html>

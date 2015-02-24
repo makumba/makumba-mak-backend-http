@@ -1,0 +1,4 @@
+course=char
+locked=boolean
+# bug with select not(label.field) ...
+toUnlock(){ case locked when true then false when false then true end }

@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Class-Path: 
+One-Jar-Main-Class: org.makumba.backend.QueryTool
+

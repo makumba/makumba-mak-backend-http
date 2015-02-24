@@ -1,0 +1,6 @@
+userId=char
+name=char
+surname=char
+admin=boolean
+
+actor(char makumbaAuthenticatedUser){ userId= makumbaAuthenticatedUser } : "Your KTH ID is not registered in the system"

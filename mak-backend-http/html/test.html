@@ -1,0 +1,22 @@
+<html>
+<head>
+<title>Mak GUI for DOM</title>
+</head>
+<body>
+<applet id="app" code="org.makumba.dom.RendererFacade" archive="lib/mak-config.jar,lib/makgui.jar,lib/makumba.jar,lib/commons-configuration-1.6.jar,lib/commons-logging.jar,lib/commons-lang-2.3.jar,lib/commons-collections-3.2.jar,lib/commons-io-1.1.jar,lib/c3p0-0.9.1.2.jar,lib/mysql-connector-java-5.1.13.jar,lib/antlr.jar,lib/gson-2.2.4.jar" width="1" height="1">
+</applet>
+<div>
+data <input id="dton" type="checkbox" onChange="app.setDataOn(dton.value);" />
+</div>
+<hr/>
+<div data-from="peer.Session s">
+<div>
+	<span data-text="s.courseRound" >some course</span> <span data-text="s.name" >performativ</span>
+	<div data-from="s.question q">
+		<span data-text="q.nr" >N</span>
+	</div>
+	<br/>
+</div>
+</div>
+</body>
+</html>

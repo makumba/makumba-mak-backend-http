@@ -1,0 +1,19 @@
+
+<project name="mql">
+<taskdef name="one-jar" classname="com.simontuffs.onejar.ant.OneJarTask" onerror="report" classpath="lib/one-jar-ant-task-0.97.jar"/>
+
+<target name="mql">
+       <delete file="mql.jar" />
+        <!-- Construct the One-JAR file -->   
+        <one-jar destfile="mql.jar" manifest="mql.mf">
+            <main>
+                <!-- Construct main.jar from classes and source code -->
+                <fileset dir="build/classes/" includes="org/makumba/*.class org/makumba/backend/*.class"/>                  
+            </main>
+            <lib>
+                <fileset dir="../makumba-core/target/" includes="makumba-core-0.9.8.jar" />
+                <fileset dir="WebContent/WEB-INF/lib" includes="jline-1.0.jar,makumba-core-0.9.8.jar,commons-beanutils-1.8.3.jar,antlr.jar,c3p0-0.9.1.2.jar,cglib.jar,commons-cli-1.2.jar,commons-collections-3.2.jar,commons-configuration-1.6.jar,commons-io-1.1.jar,commons-lang-2.3.jar,commons-logging-api.jar,commons-logging.jar,mysql.jar,gson-2.2.4.jar" />
+            </lib>
+        </one-jar>           
+    </target>
+ </project>

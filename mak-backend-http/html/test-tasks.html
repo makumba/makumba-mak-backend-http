@@ -1,0 +1,65 @@
+<html>
+<head>
+<title>Mak GUI for DOM, javascript rendering</title>
+<script src="http://sunset.nada.kth.se:8080/mak-backend/javascript/makgui.js" ></script>
+<script>
+var rMgr;
+function makRender(){
+	var tMgr=new TreeManager();
+	tMgr.exploreTree(document);
+	rMgr= new RenderingManager(tMgr, "http://sunset.nada.kth.se:8080/mak-backend/MakumbaQueryServlet", function(x){console.log(x);});
+	setInterval(function(){
+		if(pollId.checked){
+			rMgr.setDataOn(false, document);
+			rMgr.setDataOn(true, document);
+		}
+	}, 1000);
+}
+</script>
+</head>
+<body onLoad="makRender();">
+<div>
+data <input id="dton" type="checkbox" onChange="rMgr.setDataOn(dton.checked, document); if(!dton.checked) {pollId.checked=false}" />
+poll <input id="pollId" type="checkbox" onChange="rMgr.setDataOn(dton.checked, document);"/>
+</div>"html/test-tasks.html"
+<hr/>
+<div data-from="ProductionLine line">
+<div style="overflow:hidden;">
+	<div style="float:left;width:40px;"><span data-text="line.name" >L1</span></div>
+	<div style="float:left;overflow:hidden;" >
+		<svg height="15" data-from="Task t where t.line=line" data-orderBy="t.startDate">		
+	        <g>
+			<rect width="40" data-width="t.days-2" height="100%" data-x="1+datediff(t.startDate,'2011-01-01')" y="0"   fill-opacity="0" stroke="black"/>
+			<text data-text="t.customer" y="13" data-width="t.days-1" data-x="5+datediff(t.startDate,'2011-01-01')" x="5" height="100%" fill="red">VIP</text>
+			</g>
+		</svg>
+
+	</div>
+</div>
+</div>
+<div style="overflow:hidden;">
+	<div style="float:left;width:40px;"> Park</div>
+	<div data-from="Task t" data-where="t.line is null" data-orderBy="t.startDate">
+	    <div style="float:left">
+			<svg width="40" data-width="t.days" height="15">		
+		        <g>
+				<rect data-width="t.days-2" height="100%" x="1" y="0"   fill-opacity="0" stroke="black"/>
+				<text x=5 data-text="t.customer" y="13" width="100%" height="100%" fill="red">None</text>
+				</g>
+			</svg>
+			</div>
+
+	</div>
+</div>
+
+<table border="1"  data-from="Task t" data-orderBy="t.startDate">
+<tr>
+<td><span data-text="t.customer">VIPx</span></td>
+<td><span data-text="t.line.name">Lx</span></td>
+<td><span data-text="t.startDate">start date</span></td>
+<td align="right"><span data-text="t.days" >days</span></td>
+<td><span data-text="dateAdd(t.startDate, t.days, 'day')">end date</span></td>
+</tr>
+</table>
+</body>
+</html>
