@@ -1,0 +1,15 @@
+author= ptr peer.Student
+peer= ptr peer.Student
+session= ptr peer.Session
+unique(author, peer, session): "there can be only one review per author and submission"
+
+contribGrade= not null int{"F"=0, "E"=1, "D"=2, "C"=3, "B"=4, "A"=5} ; contribution grade
+
+comments= text
+length(comments){ 1..? } : "saknas! "
+contribGrade.notNull="saknas!  "
+
+isReviewFor(ptr peer.Session sess, ptr peer.Student s1, ptr peer.Student s2){this.author= s1 AND this.onPeer(s2) AND onSession(sess)}
+onSession(ptr peer.Session sess){session=sess}
+onPeer(ptr peer.Student s1){ peer=s1 }
+

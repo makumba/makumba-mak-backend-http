@@ -1,0 +1,13 @@
+session= ptr peer.Session
+author= ptr peer.Student
+unique(session, author): "there can be only one submission per student"
+
+answer= set
+answer->nr=int
+answer->grade=int{""=0, ""=1, ""=2, ""=3, ""=4, ""=5}
+answer->comment=text
+
+# set at the end
+finalGrade= int
+
+canRead(){author.isPeer()}

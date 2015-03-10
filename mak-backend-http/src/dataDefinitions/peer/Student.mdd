@@ -1,0 +1,59 @@
+user= char
+email= char
+name= char
+surname= char
+grp=char
+courseRound= char
+
+#unique(user, courseRound, grp):"a user can only be in one group in a course round"
+
+actor(char makumbaAuthenticatedUser){ user= makumbaAuthenticatedUser and courseRound= $courseRound OR user=$actStudent} : "Your KTH ID is not registered as a student in this course round"
+
+fullName(){concat(this.name, ' ', this.surname)}
+
+# is this student a group peer of the logged-in student?
+isPeer(){ this <> actor(peer.Student) AND this.grp = actor(peer.Student).grp AND courseRound= $courseRound } 
+
+submitted(ptr peer.Session sess){ exists(FROM peer.Reflection r where r.author=this AND r.session=sess)}
+
+reviewed(ptr peer.Session sess, ptr peer.Student peer2){ exists(FROM peer.Review r where r.isReviewFor(sess, this, peer2))}
+reviewCount(ptr peer.Session sess){ (SELECT count(rev) FROM peer.Review rev WHERE rev.author=this and rev.session=sess)} 
+avgContributionSet(ptr peer.Session sess){ (SELECT avg(rev.contribGrade) FROM peer.Review rev WHERE rev.author=this and rev.session=sess) }
+
+groupCount(){(select count(s) from peer.Student s where s.grp=grp and s.courseRound=courseRound)}
+
+groupReviews(ptr peer.Session sezion){ (select count(rev) from peer.Review rev where rev.onSession(sezion) AND rev.author.grp= grp)}
+
+contributionGrade(ptr peer.Session sezion){ (select avg(rev.contribGrade) from peer.Review rev where rev.onSession(sezion) AND rev.onPeer(this)) }
+
+averageContribution(ptr peer.Session sezion){ averageContributionFor(grp, sezion)}
+
+averageContributionFor(char grpC, ptr peer.Session sezion){ (select avg(rev.contribGrade) from peer.Review rev where rev.onSession(sezion) AND rev.author.grp= grpC)}
+
+projectGradeSet(ptr peer.Session sezion){exists(from peer.ProjectGrade pr where pr.session= sezion and pr.grp= grp) }
+
+projectGrade(ptr peer.Session sezion){ projectGradeFor(grp, sezion) }
+
+projectGradeFor(char grpC, ptr peer.Session sezion){ (select pr.grade from peer.ProjectGrade pr where pr.session= sezion and pr.grp= grpC) }
+
+#intEnum, not rounded
+proposedGradeRaw(ptr peer.Session sezion){ projectGrade(sezion) + contributionGrade(sezion)- averageContribution(sezion) }
+
+# intEnum, rounded and normalized (A-F)
+proposedGradeAF(ptr peer.Session sezion){ if(proposedGradeRaw(sezion)>-0.5, if(proposedGradeRaw(sezion)<5.5, (proposedGradeRaw(sezion)+0.5), 5) , 0) }
+
+# real, not rounded
+proposedGrade(ptr peer.Session sezion){ 0.0+ proposedGradeRaw(sezion) }
+
+gotGrade(ptr peer.Session sezion){ exists(from peer.StudentGrade gr where gr.session=sezion and gr.stud=this)}
+
+next(ptr peer.Student nx){ nx.courseRound=courseRound and (nx.grp=grp and (nx.surname>surname or nx.surname=surname and nx.name>name) or nx.grp>grp) }
+
+reviewFinished(ptr peer.Session sezion, char grp){ not exists(from peer.Student s where s.grp=grp and s.submitted(sezion) and not(s.reviewReady(sezion)))}
+
+reviewReady(ptr peer.Session sezion){ 1+reviewCount(sezion) = (select count(sx) from peer.Student sx where sx.grp= grp and sx.submitted(sezion))}
+
+#next(){ nx from peer.Student nx where  order by nx.grp, nx.surname, nx.name}
+
+
+#grade(real gr){ case  round(gr) when 6 then 'A' when 5 then 'A' when 4 then 'B' when 3 then 'C' when 3 then 'D' when 1 then 'E' else 'F' end }

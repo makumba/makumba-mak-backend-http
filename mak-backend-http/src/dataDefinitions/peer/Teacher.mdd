@@ -1,0 +1,12 @@
+# a common table with Student should be used but this was the fastest way to import
+user= char
+email= char
+name= char
+surname= char
+courseRound= char
+
+groups= set
+groups->name=char
+
+# the remote user will be 'user' in CAS authentication, but email is easier during testing
+actor(char makumbaAuthenticatedUser){ (user=makumbaAuthenticatedUser OR email= makumbaAuthenticatedUser) and courseRound= $courseRound}

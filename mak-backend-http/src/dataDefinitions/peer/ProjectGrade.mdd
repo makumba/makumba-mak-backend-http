@@ -1,0 +1,9 @@
+session= ptr peer.Session
+grp= char
+unique(session, grp): "there can be only one ProjectGrade per group in a session"
+
+grade= not null int{"F"=0, "E"=1, "D"=2, "C"=3, "B"=4, "A"=5}
+comments= text
+
+length(comments){ 1..? } : "missing! "
+grade.notNull="saknas!  "

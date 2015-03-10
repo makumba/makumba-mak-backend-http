@@ -1,0 +1,10 @@
+# who grades?
+teacher= ptr peer.Teacher
+
+# what is being graded?
+project= ptr peer.ProjectGrade
+studentWork= ptr peer.Reflection
+
+# grade change
+oldGrade= int
+newGrade= int

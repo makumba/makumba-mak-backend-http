@@ -1,0 +1,18 @@
+name= char
+openDate= date
+reflectionDeadline= date
+reviewDeadline= date
+courseRound= char
+question= set 
+question->nr= int
+question->q= text
+
+questionCount(){(select count(que) from question que)}
+
+isCurrent(){ courseRound=$courseRound AND openDate<now() AND not exists(FROM peer.Session x WHERE x.openDate > openDate AND x.openDate<now() )}
+inSubmission(){ courseRound=$courseRound AND reflectionDeadline>now() and now()> openDate }
+inReview(){ courseRound=$courseRound AND reflectionDeadline<now() and now()< reviewDeadline }
+inGrading() { courseRound=$courseRound AND isCurrent() and reviewDeadline< now() }
+isCurrentOrPast(){ courseRound=$courseRound AND openDate<now()}
+
+
