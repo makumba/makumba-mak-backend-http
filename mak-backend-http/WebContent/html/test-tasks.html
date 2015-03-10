@@ -1,0 +1,63 @@
+<html>
+<head>
+<title>Mak GUI for DOM, javascript rendering</title>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+<style> 
+  .task{display:inline-block;border-style:solid;border-width:1px;text-align:center;color:red;cursor:move;}
+  .line{float:left;width:80%;height:23px;border-bottom:1px solid black;position:relative;}
+  .lineLabel{float:left;width:40px;padding:3px 0px;}
+</style>
+<script src="../javascript/makgui.js" ></script>
+</head>
+<body style="padding:0px 5px" onLoad="makRender('../MakumbaQueryServlet', anno, dton, pollId);">
+<div class="row">
+<div class="col-md-1">annotate: <input id="anno" type="checkbox" /></div>  
+<div class="col-md-1">data: <input id="dton" type="checkbox" checked /></div>  
+<div class="col-md-1">poll: <input id="pollId" type="checkbox"/></div>
+</div >
+<hr/>
+
+<mak:list from="ProductionLine line">
+<div style="overflow:hidden;">
+	<span class="lineLabel"><mak:value expr="line.name"/></span>
+	<div class="line" data-from="Task t" data-where="t.line=line" data-dropOn="line"  data-title="line.name" title="Lx">
+         <div class="task" data-drag="t" 
+             data-x="datediff(t.startDate,'2011-01-01')"  x="40" 
+             reverse-x="t.startDate=dateAdd('2011-01-01', x, 'day')"
+             data-width="t.days"    width="100"
+             data-text="t.customer" 
+             style="position:absolute"
+         >VIP</div>
+	</div>
+</div>
+</mak:list>
+
+<div style="overflow:hidden;">
+	<span class="lineLabel">Park</span>
+	<div class="line" data-from="Task t" data-where="t.line= nil" data-orderBy="t.startDate" data-dropOn="">
+	    <div style="float:left" class="task" data-drag="t"
+	        reverse-x="t.startDate=nil"
+            data-text="t.customer"             
+            data-width="t.days"  width="80"
+        >parked</div>
+	</div>
+</div>
+
+<table style="border-spacing: 18px 2px; border-collapse: separate;"> 
+<thead>
+<tr><th>customer</th><th>line</th><th>start date</th><th>days</th><th>end date</th></tr>
+</thead>
+<tbody data-from="Task t" data-orderBy="t.startDate">
+<tr>
+	<td><input type="text" data-value="t.customer" value="VIPx" onkeyup="synch()"  size="10"/></td>
+	<td  data-text="t.line.name">Lx</td>
+	<td data-text="t.startDate">start date</td>
+	<td><input type="text" data-value="t.days" value="days" onchange="synch()" size="5"/></td>
+	<td data-text="dateAdd(t.startDate, t.days, 'day')">end date</td>
+</tr>
+
+
+</tbody>
+</table>
+</body>
+</html>

@@ -1,4 +1,82 @@
-	function RenderingManager(tMgr, ajaxRoot, log){
+var rMgr;
+var tMgr=new TreeManager();
+
+function makRender(backend, annotateButton, dtonButton, pollButton){
+	tMgr.exploreTree(document);
+	rMgr= new RenderingManager(tMgr, backend, function(x){console.log(x);});
+
+	dtonButton.addEventListener("change", function(){rMgr.setDataOn(dtonButton.checked, document); if(!dtonButton.checked) pollButton.checked=false;}); 
+	pollButton.addEventListener("change", function(){rMgr.setDataOn(dtonButton.checked=true, document);});
+	annotateButton.addEventListener("change", function(){rMgr.setAnnotated(annotateButton.checked, document);});
+    
+    //if(dtonButton.checked)
+	rMgr.setAnnotated(annotateButton.checked, document);
+    rMgr.setDataOn(dtonButton.checked, document);
+	setInterval(function(){
+		if(pollButton.checked)
+			rMgr.updateScene(document);
+	}, 1000);
+}
+
+function synch(){
+	
+	// if event.target is <INPUT>
+	var expr=event.target.getAttribute("data-value");
+	var label= expr.match("[a-z]+");
+	var path=expr.substring(label.length+1);
+	var ptr= tMgr.getNodeProperties(event.target).objects[label];
+   	rMgr.update(ptr.toString(), ptr.type, path, event.target.value,  tMgr.getNodeProperties(event.target).examples[expr+"_type"]);
+   	rMgr.updateScene(document);
+}
+
+function makdrag(event){
+	event.dataTransfer.setData("makDnD", JSON.stringify({dx:event.offsetX, dy:event.offsetY, objects: tMgr.getNodeProperties(event.target).objects}));
+	event.dataTransfer.effectAllowed = 'move';
+}
+
+function makdrop(event){
+	 event.preventDefault();
+	 var data=JSON.parse(event.dataTransfer.getData("makDnD"));
+	 
+	 var dest=tMgr.getNodeProperties(this);
+	 if(dest.objects['line']!=null){
+	 	rMgr.updateWhere(
+			 data.objects['t'].type+" t, "+dest.objects['line'].type+" line",
+			 "t.line=line, t.startDate=dateAdd('2011-01-01', :x, 'day')",
+			 "t=:t AND line=:line",
+			 {t:data.objects['t'].value, line:dest.objects['line'].value, x: event.pageX-this.offsetLeft-data.dx}
+	 		);
+	}else
+		{
+	 	rMgr.updateWhere(
+				 data.objects['t'].type+" t",
+				 "t.line=nil, t.startDate=nil", 
+				 "t=:t",
+				 {t:data.objects['t'].value}
+		 		);
+		}
+	rMgr.updateScene(document);
+}
+
+function makdragover(event){
+	 event.preventDefault();
+}
+
+
+function addMakListeners(node){
+	if(!node.attributes)
+		return;
+	if(node.attributes['data-drag']!=null){
+		node.addEventListener("dragstart", makdrag, false);
+		node.draggable=true;
+	}
+	if(node.attributes['data-dropOn']!=null){
+		node.addEventListener("drop", makdrop, false);
+		node.addEventListener("dragover", makdragover, false);
+	}
+}
+
+function RenderingManager(tMgr, ajaxRoot, log){
     	this.tMgr=tMgr;
     	this.log=log;
     	
@@ -48,16 +126,31 @@
 		this.event = null;
 	};
 
-	RenderingManager.prototype.update=function(root) {
+	RenderingManager.prototype.updateScene=function(root) {
 		this.event = "dataOn";
 		this.render(root);
 		this.event = null;
 	};
 
-	RenderingManager.prototype.update=function(root, object, path, value) {
-// TODO: use ajax:		
-		this.srv.update(object, path, value);
-		this.update(root);
+	RenderingManager.prototype.updateWhere=function(from, set, where, params){
+		var xmlhttp=new XMLHttpRequest();
+		xmlhttp.open("POST", this.ajaxRoot, false);
+		xmlhttp.send("updateFrom="+encodeURIComponent(from)+
+				"&updateSet="+encodeURIComponent(set)+
+				"&updateWhere="+encodeURIComponent(where)+
+				"&param="+encodeURIComponent(JSON.stringify(params)));
+		console.log(xmlhttp.responseText); 
+	};
+	
+	RenderingManager.prototype.update=function(object, type, path, value, exprType) {		
+		var xmlhttp=new XMLHttpRequest();
+		xmlhttp.open("POST", this.ajaxRoot, false);
+		xmlhttp.send("object="+encodeURIComponent(object)+
+				"&type="+encodeURIComponent(type)+
+				"&path="+encodeURIComponent(path)+
+				"&value="+encodeURIComponent(value)+
+				"&exprType="+encodeURIComponent(exprType));				
+		console.log(xmlhttp.responseText); 
 	};
 
 	RenderingManager.prototype.render=function(node) {
@@ -77,9 +170,11 @@
 			var expr = np.props[prop];
 			var param = np.examples[expr];
 			
+			if(this.annotated && !this.dataOn && (prop=="text" || prop=="value"))
+				param=expr;
+
+			
 			// TODO: the type doesn't matter for javascript
-			if(prop=='text' && param==null)
-				param="";
 			this.setProperty(node, prop, null, param);
 		}
 	};
@@ -118,20 +213,51 @@
 			}
 		}
 		this.renderBorder(node);
-		if (!"dataOn"==this.event)
+		if (!("dataOn"==this.event))
 			this.renderChildren(node);
-		if (this.annotated)
-			this.renderAnnotations(node);
+
+		this.renderAnnotations(node);
 	};
 	
-	RenderingManager.prototype.renderAnnotations=function(node){};
+	RenderingManager.prototype.renderAnnotations=function(node){
+		if(this.annotated && node.annotation || !this.annotated && !node.annotation)
+			return;
+		
+		if(this.annotated && !node.annotation){
+			var fieldset=document.createElement("fieldset");
+			fieldset.style.border='1px solid';
+			var legend= document.createElement("legend");
+			legend.style['font-size']="1em";
+			legend.style.color="blue";
+			legend.style.width=legend.style.margin=legend.style.padding="inherit";
+
+			var anno= "   FROM "+node.attributes['data-from'].value;
+			if(node.attributes['data-where'])
+				anno+=" WHERE "+node.attributes['data-where'].value;
+			if(node.attributes['data-orderBy'])
+				anno+=" ORDER BY "+node.attributes['data-orderBy'].value;
+			if(node.attributes['data-groupBy'])
+				anno+=" GROUP BY "+node.attributes['data-groupBy'].value;
+			if(node.attributes['data-dropOn'])
+				anno+=" ;  dropOn "+node.attributes['data-dropOn'].value;
+			
+			anno+="   ";
+			legend.appendChild(document.createTextNode(anno));
+			fieldset.appendChild(legend);
+			node.parentNode.replaceChild(fieldset, node);
+			node.annotation=fieldset;
+			fieldset.appendChild(node);
+		}
+		if(!this.annotated && node.annotation){
+			node.annotation.parentNode.replaceChild(node, node.annotation);
+			node.annotation=null;
+		}
+	};
 
 	RenderingManager.prototype.renderBorder=function(node){};
 
 	RenderingManager.prototype.iterateComponents=function(container) {
-		// remove all children since we may have 0 iterations
-		this.tMgr.removeAllChildren(container);
-
+		
 		// this will not do much since iteration nodes don't currently have node
 		// properties
 		this.setProperties(container);
@@ -141,25 +267,46 @@
 
 		// the usual iterationData loop
 		if (iterationData.startIteration()) {
-			for (var i = 0; i < iterationData.iterationSize(); i++) {
-				iterationData.setRowIndex(i);
-				// we take the children saved since we've removed all elements
-				var len=this.tMgr.getSavedChildren(container).length;
-				for (var j=0;j<len;j++) {
-					var c= this.tMgr.getSavedChildren(container)[j];
-					var comp = this.duplicateTree(c, iterationData);
-					this.tMgr.add(container, comp);
-
-					// this triggers the looping (iterateComponents()) of all
-					// iterationNodes in the subtree
-					this.render(comp);
-				}
-			}
+	           if (this.tMgr.getChildrenCount(container) == iterationData.iterationSize()
+	                    * this.tMgr.getSavedChildren(container).length) {
+	                var jk = 0;
+	                
+	                for (var i = 0; i < iterationData.iterationSize(); i++) {
+	                    iterationData.setRowIndex(i);
+	                    var len=this.tMgr.getSavedChildren(container).length;
+	    				for (var j=0;j<len;j++) {
+	    					var c= this.tMgr.getSavedChildren(container)[j];
+	                        var comp = this.tMgr.getChildAt(container, jk++);
+	                        this.duplicateData(comp, c, iterationData);
+	                        this.render(comp);
+	                    }
+	                }
+	            } else {
+	            	this.tMgr.removeAllChildren(container);
+					for (var i = 0; i < iterationData.iterationSize(); i++) {
+						iterationData.setRowIndex(i);
+						// we take the children saved since we've removed all elements
+						var len=this.tMgr.getSavedChildren(container).length;
+						for (var j=0;j<len;j++) {
+							var c= this.tMgr.getSavedChildren(container)[j];
+							var comp = this.duplicateTree(c, iterationData);
+							this.tMgr.add(container, comp);
+		
+							// this triggers the looping (iterateComponents()) of all
+							// iterationNodes in the subtree
+							this.render(comp);
+						}
+					}
+	            }
 			var end = Date.now();
-			this.log("rendering: "+ (end - l)+ " "+ this.tMgr.getNodeProperties(container).getQueryData());
 
+			this.log("rendering: "+ (end - l)+ " "+ this.tMgr.getNodeProperties(container).getQueryData());
+	           
 			// end of iteration
 			iterationData.closeIteration();
+		}else{
+			// remove all children since we may have 0 iterations
+			this.tMgr.removeAllChildren(container);
 		}
 	};
 
@@ -169,6 +316,11 @@
 		for (var s in np.props) {
 			this.tMgr.getIterationData(node).addExpression(np.props[s],
 					np.canBeInvalidF(np.props[s]), np.isEditable(np.props[s]));
+			if(np.props[s].match("[a-z]+[.a-z]+")==np.props[s]){
+				var label=np.props[s].match("[a-z]+")[0];
+				this.tMgr.getIterationData(node).addExpression(label, false, false);
+				np.objects[label]={};
+			}
 		}
 	};
 
@@ -197,17 +349,40 @@
 		}
 	};
 
+	/* data duplication */
+	RenderingManager.prototype.duplicateData=function(ret, template, iterationData) {
+	 if (this.tMgr.isIterationNode(template)) {
+         this.tMgr.setNodeProperties(ret, this.tMgr.getNodeProperties(template).duplicateOn(iterationData));
+         this.tMgr.setIterationData(ret, this.tMgr.getIterationData(template));
+
+         // we don't propagate duplication further, the iteration node will
+         // duplicate its children when it renders
+         return;
+     }
+
+     if (this.tMgr.isQueryAnnotatedWidget(template)) {
+         this.tMgr.setNodeProperties(ret, this.tMgr.getNodeProperties(template).duplicateOn(iterationData));
+     }
+
+     for (var i = 0; i < this.tMgr.getChildrenCount(template); i++)
+         this.duplicateData(this.tMgr.getChildAt(ret, i), this.tMgr.getChildAt(template, i), iterationData);
+	};
+	
 	/* duplication */
 	RenderingManager.prototype.duplicateTree=function( template, iterationData) {
 		var ret = this.tMgr.duplicateNode(template);
+		
+		addMakListeners(ret);
+		ret.annotation= template.annotation;
+		
 		if (this.tMgr.isIterationNode(template)) {
 			this.tMgr.copyNodeRelations(template, ret);
 			this.tMgr.setNodeProperties(ret, this.tMgr.getNodeProperties(template)
 					.duplicateOn(iterationData));
 			this.tMgr.setIterationData(ret, this.tMgr.getIterationData(template));
-
+			
 			// we don't propagate duplication further, the iteration node will
-			// duplicate its children when it renders
+			// duplicate its children when it renders			
 			return ret;
 		}
 
@@ -233,12 +408,29 @@
 
 	RenderingManager.prototype.setProperty=function(node, prop, type, param) {
 		if ("text"==prop) {
+				 if( param==null)
+					param="";			
+
 			if (this.tMgr.getChildrenCount(node) > 0
 					&& (this.tMgr.getChildAt(node, 0).nodeType==3)) {
 				node.childNodes.item(0).nodeValue="" + param;
+//				$(node).text(""+param);
 			}
-		} else
-			node.setAttribute(prop, param);
+		} else if("value"==prop){	
+				// if we are in focus, we don't change the user-entered value
+				if(document.activeElement!=node)
+				// setting property rather than attribute
+					node.value=param;
+        }
+        else if("x"==prop){		
+            node.style.left=param;
+        }
+        else if("width"==prop){		
+            node.style.width=param;
+        }
+        else
+            node.setAttribute(prop, param);
+        	//$(node).attr(prop, param);
 
 	};
 
@@ -260,6 +452,7 @@
 	};
 
 	TreeManager.prototype.removeAllChildren=function(container){
+		//$(container).empty();
 		var childNodes = container.childNodes;
 		var length = childNodes.length;
 		for (var i = 0; i < length; i++) {
@@ -268,11 +461,13 @@
 	};
 
 	TreeManager.prototype.add=function( container,  comp){
+		//$(container).append(comp);
 		container.appendChild(comp);		
 	};
 
 	TreeManager.prototype.duplicateNode=function(from) {
 		return from.cloneNode(false);
+		//return $(from).clone().empty()[0];
 	};
 
 
@@ -375,41 +570,57 @@
 			var np = new NodeProperties();
 			var hasContent = false;
 
+			if(node.tagName=="MAK:VALUE"){
+				if(getAttribute(attributes, 'expr')!=null)
+					node.setAttribute('data-text', getAttribute(attributes, 'expr'));
+				node.appendChild(document.createTextNode(""));				
+			}
+			if(node.tagName=="MAK:LIST"){
+				if(getAttribute(attributes, 'from')!=null)
+					node.setAttribute('data-from', getAttribute(attributes, 'from'));
+				if(getAttribute(attributes, 'where')!=null)
+					node.setAttribute('data-where', getAttribute(attributes, 'where'));
+				if(getAttribute(attributes, 'groupBy')!=null)
+					node.setAttribute('data-groupBy',getAttribute(attributes, 'groupBy'));
+				if(getAttribute(attributes, 'orderBy')!=null)
+					node.setAttribute('data-orderBy', getAttribute(attributes, 'orderBy'));
+			}
 			if (getAttribute(attributes, "data-from") != null) {
 				np.setQueryData([getAttribute(attributes, "data-from"), getAttribute(attributes, "data-where"), getAttribute(attributes, "data-groupBy"), getAttribute(attributes, "data-orderBy"), null, null]);
-				// TODO: currently we don't allow iteration nodes to have
-				// properties set, though this could be the case, using
-				// expressions from enclosing queries
+				hasContent = true;				
+			} 
+			for (var i = 0; i < attributes.length; i++) {
+				var n = attributes.item(i);
+
+				
+				// everything that starts with data is considerd a mak
+				// expression
+				if (n.nodeName.substring(0, 5)!="data-")
+					continue;
+
+				var name = n.nodeName.substring(5);
+				if(name=="from" || name=="where" || name=="groupBy" || name=="orderBy")
+					continue;
 				hasContent = true;
 
-			} else
-				for (var i = 0; i < attributes.length; i++) {
-					var n = attributes.item(i);
+				// if the parameter without data is present, it is
+				// considered an example value
+				var example = getAttribute(attributes, name);
 
-					// everything that starts with data is considerd a mak
-					// expression
-					if (n.nodeName.substring(0, 5)!="data-")
-						continue;
-					hasContent = true;
-
-					var name = n.nodeName.substring(5);
-
-					// if the parameter without data is present, it is
-					// considered an example value
-					var example = getAttribute(attributes, name);
-
-					// ... and the text example is considered to be the first
-					// Text subnode
-					if (name=="text") {
-						if (this.getChildrenCount(node) > 0 && this.getChildAt(node, 0).nodeType==3) {
-							example = this.getChildAt(node, 0).nodeValue;
-						}
+				// ... and the text example is considered to be the first
+				// Text subnode
+				if (name=="text") {
+					if (this.getChildrenCount(node) > 0 && this.getChildAt(node, 0).nodeType==3) {
+						example = this.getChildAt(node, 0).nodeValue;
 					}
-
-					np.addProperty(name, n.value, example);
 				}
+
+				np.addProperty(name, n.value, example);
+			}
 			if (!hasContent)
 				return null;			
+		
+			addMakListeners(node);
 
 			return np;
 		}
@@ -429,6 +640,7 @@
 	function NodeProperties(){
 		this.props=[];
 		this.examples=[];
+		this.objects={};
 		this.editable=[];
 		this.canBeInvalid=[];
 		
@@ -488,11 +700,17 @@
 		ret.props = this.props;
 		ret.queryData = this.queryData;
 
-		ret.examples = [];
+		ret.examples = {};
+		ret.objects= {};
 
+		// if label.prop.prop
 		for (var prop in this.props) {
 			var expr = this.props[prop];
 			ret.examples[expr]= iterationData.getExpressionValue(expr);
+			ret.examples[expr+"_type"]=iterationData.getExpressionType(expr);
+		}
+		for(var obj in this.objects){
+			ret.objects[obj]= iterationData.getExpressionValue(obj);
 		}
 		return ret;
 	};
@@ -633,9 +851,14 @@
 				return ret;
 			}
 
-			if (this.getExpressionType(expr)=="java.util.Date")
-				return new Date(val);
-			
+			if (this.getExpressionType(expr)=="java.util.Date"){
+				var ret= new Date(val);
+				ret.toString=function(){
+					return this.toDateString();
+				};
+				return ret;
+			}
+				
 			if (this.getExpressionType(expr)=="java.lang.Integer")
 				return parseInt(val);
 			return val;
