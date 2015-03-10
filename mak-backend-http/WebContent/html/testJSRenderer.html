@@ -1,0 +1,30 @@
+<html>
+<head>
+<title>Mak GUI for DOM, javascript rendering</title>
+<script src="http://localhost:8080/mak/javascript/makgui.js" ></script>
+<script>
+var rMgr;
+function makRender(){
+	var tMgr=new TreeManager();
+	tMgr.exploreTree(document);
+	rMgr= new RenderingManager(tMgr, "http://localhost:8080/mak/MakumbaQueryServlet", function(x){console.log(x);});
+	rMgr.setDataOn(true, document);
+}
+</script>
+</head>
+<body onLoad="makRender();">
+<div>
+data <input id="dton" type="checkbox" onChange="rMgr.setDataOn(dton.checked, document);" checked />
+</div>
+<hr/>
+<div data-from="peer.Session s">
+<div>
+	<span data-text="s.courseRound" >some course</span> <span data-text="s.name" >performativ</span>
+	<div data-from="s.question q" data-orderBy="q.nr">
+		<span data-text="q.nr" >N</span>
+	</div>
+	<br/>
+</div>
+</div>
+</body>
+</html>
