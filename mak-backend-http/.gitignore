@@ -1,2 +1,5 @@
 /build
 /mql.jar
+/bin
+/target
+/.cache
