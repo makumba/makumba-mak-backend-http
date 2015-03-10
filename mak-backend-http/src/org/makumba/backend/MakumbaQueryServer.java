@@ -201,6 +201,16 @@ public class MakumbaQueryServer implements QueryServer {
         }
     }
 
+    public int update(String from, String set, String where, Object param) {
+        Transaction tr = TransactionProvider.getInstance().getConnectionToDefault();
+        try {
+            return tr.update(from, set, where, param);
+        } finally {
+
+            tr.close();
+        }
+    }
+
     public void update(Pointer object, String path, Object value) {
         Transaction tr = TransactionProvider.getInstance().getConnectionToDefault();
         Dictionary<String, Object> fieldsToChange = new Hashtable<String, Object>();

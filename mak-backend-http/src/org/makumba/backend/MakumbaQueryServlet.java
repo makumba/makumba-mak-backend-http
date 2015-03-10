@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Type;
 import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,6 +24,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.reflect.TypeToken;
 
 /**
  * Servlet implementation class MakumbaQueryServlet
@@ -48,6 +50,9 @@ public class MakumbaQueryServlet extends HttpServlet {
 
     }
 
+    static Type typeToken = new TypeToken<Map<String, Object>>() {
+    }.getType();
+
     /**
      * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
      */
@@ -56,22 +61,48 @@ public class MakumbaQueryServlet extends HttpServlet {
             IOException {
         // TODO Auto-generated method stub
         response.setHeader("Access-Control-Allow-Origin", "*");
-        response.setContentType("application/json; charset=UTF-8");
+
+        Gson gson = new Gson();
+
+        InputStream is = request.getInputStream();
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        byte[] buf = new byte[1024];
+        int r = 0;
+        while (r >= 0) {
+            r = is.read(buf);
+            if (r >= 0)
+                os.write(buf, 0, r);
+        }
+        String s = new String(os.toByteArray(), "UTF-8");
+        Map<String, String> map = makeQueryMap(s);
+
         try {
+            if (map.get("updateFrom") != null) {
+                Map<String, Object> params = gson.fromJson(map.get("param"), typeToken);
 
-            InputStream is = request.getInputStream();
-            ByteArrayOutputStream os = new ByteArrayOutputStream();
-            byte[] buf = new byte[1024];
-            int r = 0;
-            while (r >= 0) {
-                r = is.read(buf);
-                if (r >= 0)
-                    os.write(buf, 0, r);
+                for (String k : params.keySet()) {
+                    Object v = params.get(k);
+                    if (v instanceof Double && (Double) v == ((Double) v).intValue()) {
+                        params.put(k, ((Double) v).intValue());
+                    }
+                }
+                response.getWriter().print(
+                    new MakumbaQueryServer().update(map.get("updateFrom"), map.get("updateSet"),
+                        map.get("updateWhere"), params));
+                return;
+
+            } else if (map.get("object") != null) {
+                Object value = map.get("value");
+                if (map.get("exprType").equals("java.lang.Integer"))
+                    value = Integer.parseInt((String) value);
+
+                new MakumbaQueryServer().update(new org.makumba.Pointer(map.get("type"), map.get("object")),
+                    map.get("path"), value);
+                return;
             }
-            String s = new String(os.toByteArray(), "UTF-8");
-            // String decoded = URLDecoder.decode(s, "UTF-8");
+            response.setContentType("application/json; charset=UTF-8");
 
-            Map<String, String> map = makeQueryMap(s);
+            // String decoded = URLDecoder.decode(s, "UTF-8");
 
             QueryRequest req = null;
 
@@ -88,7 +119,7 @@ public class MakumbaQueryServlet extends HttpServlet {
 
             // System.out.println("Result: " + result);
             response.getWriter().print(result);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             e.printStackTrace();
             JsonObject error = new JsonObject();
             error.addProperty("error", e.getMessage());
