@@ -8,7 +8,7 @@ package org.makumba;
 
 public interface QueryServer {
 
-    public QueryResponse execute(QueryRequest req, boolean onlyAnalysis);
+    public QueryResponse execute(QueryRequest req, boolean onlyAnalysis, Attributes attr);
 
     public void invokeLogic(String op, Pointer p, Object data);
 

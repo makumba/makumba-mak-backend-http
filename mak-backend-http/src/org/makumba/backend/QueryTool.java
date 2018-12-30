@@ -84,7 +84,7 @@ public class QueryTool {
             }
             req.addQuery(relatedQd);
             try {
-                QueryResponse results = srv.execute(req, false);
+                QueryResponse results = srv.execute(req, false, null);
                 System.out.println(new Gson().toJson(results.results.get(0).columnType));
                 System.out.println(new Gson().toJson(results.resultData.get("0")));
             } catch (Throwable e) {

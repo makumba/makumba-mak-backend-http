@@ -14,6 +14,7 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
+import org.makumba.Attributes;
 import org.makumba.DataDefinition;
 import org.makumba.FieldDefinition;
 import org.makumba.Pointer;
@@ -37,7 +38,7 @@ import com.google.gson.JsonObject;
 
 public class MakumbaQueryServer implements QueryServer {
 
-    public QueryResponse execute(QueryRequest req, boolean onlyAnalyze) {
+    public QueryResponse execute(QueryRequest req, boolean onlyAnalyze, Attributes attr) {
         // System.out.println((onlyAnalyze ? "ana" : "exe") + req);
         List<ComposedQuery> cq = new ArrayList<ComposedQuery>();
         for (RelatedQueryData qd : req.getQueries()) {
@@ -88,7 +89,9 @@ public class MakumbaQueryServer implements QueryServer {
 
         IterationData[] ids = new IterationData[req.getQueries().size()];
 
-        QueryProvider qep = getQueryExecutionProvider();
+        // QueryProvider qep = getQueryExecutionProvider();
+
+        QueryProvider qep = QueryProvider.makeQueryRunner(Configuration.getDefaultDataSourceName(), "oql", attr);
         try {
             for (int i = 0; i < req.getQueries().size(); i++) {
                 IterationData pid = null;

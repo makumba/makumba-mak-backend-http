@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.makumba.LogicException;
 import org.makumba.QueryRequest;
 import org.makumba.QueryRequest.QueryData;
 import org.makumba.QueryRequest.RelatedQueryData;
@@ -44,7 +45,8 @@ public class MakumbaQueryServlet extends HttpServlet {
      * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
      */
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
         // TODO Auto-generated method stub
         doPost(request, response);
 
@@ -57,10 +59,8 @@ public class MakumbaQueryServlet extends HttpServlet {
      * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
      */
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException,
-            IOException {
-        // TODO Auto-generated method stub
-        response.setHeader("Access-Control-Allow-Origin", "*");
+    protected void doPost(final HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
 
         Gson gson = new Gson();
 
@@ -74,9 +74,9 @@ public class MakumbaQueryServlet extends HttpServlet {
                 os.write(buf, 0, r);
         }
         String s = new String(os.toByteArray(), "UTF-8");
-        Map<String, String> map = makeQueryMap(s);
 
         try {
+            Map<String, String> map = makeQueryMap(s);
             if (map.get("updateFrom") != null) {
                 Map<String, Object> params = gson.fromJson(map.get("param"), typeToken);
 
@@ -86,9 +86,8 @@ public class MakumbaQueryServlet extends HttpServlet {
                         params.put(k, ((Double) v).intValue());
                     }
                 }
-                response.getWriter().print(
-                    new MakumbaQueryServer().update(map.get("updateFrom"), map.get("updateSet"),
-                        map.get("updateWhere"), params));
+                response.getWriter().print(new MakumbaQueryServer().update(map.get("updateFrom"), map.get("updateSet"),
+                    map.get("updateWhere"), params));
                 return;
 
             } else if (map.get("object") != null) {
@@ -113,7 +112,28 @@ public class MakumbaQueryServlet extends HttpServlet {
             else
                 req = new Gson().fromJson(map.get("request"), QueryRequest.class);
 
-            QueryResponse resp = new MakumbaQueryServer().execute(req, analyzeOnly);
+            QueryResponse resp = new MakumbaQueryServer().execute(req, analyzeOnly, new org.makumba.Attributes() {
+
+                @Override
+                public Object getAttribute(String name) throws LogicException {
+                    return request.getAttribute(name);
+                }
+
+                @Override
+                public Object setAttribute(String name, Object value) throws LogicException {
+                    return null;
+                }
+
+                @Override
+                public void removeAttribute(String name) throws LogicException {
+                }
+
+                @Override
+                public boolean hasAttribute(String name) {
+                    return request.getParameter(name) != null;
+                }
+
+            });
 
             String result = filipStyle ? resp.resultData.toString() : new Gson().toJson(resp);
 
@@ -140,9 +160,9 @@ public class MakumbaQueryServlet extends HttpServlet {
         JsonArray queries = parser.parse(map.get("queries")).getAsJsonArray();
 
         for (JsonElement e : queries) {
-            RelatedQueryData qd = new RelatedQueryData(e.getAsJsonObject().get("parentIndex").getAsInt(),
-                    new QueryData(new String[] { e.getAsJsonObject().get("from").getAsString(), null, null, null, null,
-                            null }, 0, -1));
+            RelatedQueryData qd = new RelatedQueryData(e.getAsJsonObject().get("parentIndex").getAsInt(), new QueryData(
+                    new String[] { e.getAsJsonObject().get("from").getAsString(), null, null, null, null, null }, 0,
+                    -1));
             for (JsonElement sq : e.getAsJsonObject().get("projections").getAsJsonArray()) {
                 qd.projections.add(sq.getAsString());
             }

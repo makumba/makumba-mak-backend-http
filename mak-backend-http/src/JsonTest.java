@@ -1,5 +1,4 @@
 
-
 import org.makumba.QueryRequest;
 import org.makumba.QueryRequest.QueryData;
 import org.makumba.QueryRequest.RelatedQueryData;
@@ -22,7 +21,7 @@ public class JsonTest {
 
         req.addQuery(sqd);
 
-        System.out.println(new MakumbaQueryServer().execute(req, false).resultData);
+        System.out.println(new MakumbaQueryServer().execute(req, false, null).resultData);
 
     }
 }
