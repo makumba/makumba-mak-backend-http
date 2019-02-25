@@ -1,0 +1,17 @@
+<html>
+<head>
+<script src="../javascript/makgui.js" ></script>
+</head>
+<body style="padding:0px 5px" onLoad="makRender('http://ev.csc.kth.se:8080/MakumbaQueryServlet', anno, dton, pollId);
+">
+<div class="row">
+<div class="col-md-1">annotate: <input id="anno" type="checkbox" /></div>  
+<div class="col-md-1">data: <input id="dton" type="checkbox" checked /></div>  
+<div class="col-md-1">poll: <input id="pollId" type="checkbox"/></div>
+</div >
+<hr/>
+<div data-from="q.User u" data-where="u=actor(q.User)">
+  <span data-text="u.surname">gigi</span>
+</div>
+</body>
+</html>

@@ -811,8 +811,12 @@ function RenderingManager(tMgr, ajaxRoot, log){
 			if (this.parent == null) {
 				var xmlhttp=new XMLHttpRequest();
 				xmlhttp.open("POST", ajaxRoot, false);
-				xmlhttp.send("request="+encodeURIComponent(JSON.stringify(this.rootRequest))+"&analyzeOnly="+analyzeOnly);				
+				try{
+				xmlhttp.send("request="+encodeURIComponent(JSON.stringify(this.rootRequest))+"&analyzeOnly="+analyzeOnly);
 				this.rootResponse = JSON.parse(xmlhttp.responseText);
+				}catch(exception){
+					console.log(exception);
+				}
 			} else {
 				// propagate result down the tree
 				this.rootResponse = this.parent.rootResponse;
